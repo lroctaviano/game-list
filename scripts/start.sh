@@ -21,4 +21,23 @@ else
 fi
 
 echo "Starting the application..."
-npm start
+npm start &
+APP_PID=$!
+
+# Wait for application to start
+sleep 10
+
+# Run sanity tests if in development mode
+if [ "${NODE_ENV:-development}" = "development" ]; then
+    echo "🧪 Running sanity checks..."
+    sh scripts/test-sanity.sh
+
+    if [ $? -ne 0 ]; then
+        echo "❌ Sanity checks failed. Stopping application."
+        kill $APP_PID
+        exit 1
+    fi
+fi
+
+# Keep the application running
+wait $APP_PID

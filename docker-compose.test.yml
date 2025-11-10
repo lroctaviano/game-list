@@ -5,15 +5,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.postgres
-    container_name: gamedb-postgres
+    container_name: gamedb-postgres-test
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=gamedb_pass
       - POSTGRES_DB=gamedb
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_test_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -24,22 +24,22 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: gamedb-app
+    container_name: gamedb-app-test
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=test
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=gamedb
       - DB_USER=postgres
       - DB_PASSWORD=gamedb_pass
       - PORT=8000
-      - JWT_SECRET=your-secret-key-here-change-in-production
+      - JWT_SECRET=test-secret-key
       - API_VERSION=v1
       - API_PREFIX=/api
       - GRAPHQL_PATH=/graphql
       - GRAPHQL_PLAYGROUND=true
     ports:
-      - "8000:8000"
+      - "8001:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,12 +47,10 @@ services:
       - ./src:/app/src
       - ./migrations:/app/migrations
       - ./seeders:/app/seeders
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      - ./tests:/app/tests
+    command: sh -c "npm run test:sanity && npm test"
+    profiles:
+      - test
 
 volumes:
-  postgres_data:
+  postgres_test_data:

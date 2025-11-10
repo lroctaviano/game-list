@@ -3,7 +3,7 @@
 ## Overview
 
 This document provides an overview of the Game DB, which is a structured database containing information about various video games. The database includes details such as game titles, genres, platforms, release dates, developers, publishers, and user ratings.
-Database contains fictional data for demonstration purposes. The project will seed a database with sample game data to illustrate its structure and functionality. Database will be containerized using Docker/Podman for easy deployment and management.
+Database contains fictional data for demonstration purposes. The project will seed a database with sample game data to illustrate its structure and functionality. Database will be containerized using Docker/Podman for the developers to easily have access to an API for their frontend exam or pair programming session.
 Project in its end state will provide a RESTful API and GraphQL endpoint to access the game data.
 
 ## Database Structure
@@ -85,9 +85,45 @@ The Game DB will provide the following API endpoints:
 - `GET /genres`: Retrieve a list of all genres
 - `GET /reviews`: Retrieve user reviews for games
 
+## HATEOAS Implementation
+The REST API implements HATEOAS (Hypermedia as the Engine of Application State) principles to provide discoverable and self-documenting endpoints. Each response includes hypermedia links that guide clients through available actions and relationships.
+
+### HATEOAS Features:
+- **Self-documenting responses**: Each resource includes links to related actions and resources
+- **Navigation links**: Automatic generation of pagination, filtering, and sorting links
+- **Relationship discovery**: Links to related entities (e.g., game → developer, game → genre)
+- **Action availability**: Dynamic links based on resource state and user permissions
+- **Resource versioning**: Links include API version information for backward compatibility
+
+### Link Structure:
+All API responses include a `_links` object containing:
+- `self`: Link to the current resource
+- `related`: Links to associated resources (developer, publisher, genre, reviews)
+- `actions`: Available operations (edit, delete, etc.) based on context
+- `navigation`: Pagination and collection traversal links
+
+### Example Response:
+```json
+{
+  "data": {
+    "id": "123",
+    "title": "Example Game",
+    "genre": "Action"
+  },
+  "_links": {
+    "self": { "href": "/api/v1/games/123" },
+    "genre": { "href": "/api/v1/genres/action" },
+    "developer": { "href": "/api/v1/companies/456" },
+    "reviews": { "href": "/api/v1/games/123/reviews" },
+    "images": { "href": "/api/v1/games/123/images" }
+  }
+}
+```
+
 ## Documentation of API
 Comprehensive documentation will be provided for the API, including:
 - Endpoint descriptions
 - Request and response formats
+- HATEOAS link specifications and relationship mappings
 - Example queries for the GraphQL endpoint
 - GraphQL schema documentation (Playground/GraphiQL support)

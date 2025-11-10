@@ -1,12 +1,18 @@
-const { config } = require('dotenv');
+import { config } from 'dotenv';
+import { Options } from 'sequelize';
+
 config();
 
-module.exports = {
+interface DatabaseConfig {
+  [key: string]: Options;
+}
+
+const databaseConfig: DatabaseConfig = {
   development: {
     username: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD || 'gamedb_pass',
     database: process.env.DB_NAME || 'gamedb',
-    host: process.env.DB_HOST || 'postgres',
+    host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT || '5432'),
     dialect: 'postgres',
     logging: false,
@@ -30,7 +36,7 @@ module.exports = {
     username: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD || 'gamedb_pass',
     database: process.env.DB_NAME || 'gamedb_test',
-    host: process.env.DB_HOST || 'postgres',
+    host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT || '5432'),
     dialect: 'postgres',
     logging: false,
@@ -59,3 +65,5 @@ module.exports = {
     }
   }
 };
+
+export default databaseConfig;

@@ -1,18 +1,21 @@
-module.exports = {
+const config = {
+  preset: 'ts-jest',
   testEnvironment: 'node',
-  verbose: true,
-  collectCoverage: true,
+  roots: ['<rootDir>/src', '<rootDir>/tests'],
+  testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
+  transform: {
+    '^.+\\.ts$': 'ts-jest',
+  },
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/**/*.d.ts',
+  ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  testMatch: ['**/tests/**/*.test.js'],
-  collectCoverageFrom: [
-    'src/**/*.js',
-    '!src/index.js', // Exclude main entry point
-    '!src/migrations/**',
-    '!src/seeders/**'
-  ],
-  coveragePathIgnorePatterns: ['/node_modules/', '/tests/'],
-  setupFilesAfterEnv: ['./tests/setup.js'],
-  testTimeout: 30000, // 30 seconds for API tests
-  maxWorkers: 1, // Run tests serially to avoid conflicts
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
 };
+
+module.exports = config;

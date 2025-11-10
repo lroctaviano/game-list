@@ -6,7 +6,7 @@ Backend API for frontend technical assignments.
 
 ```bash
 # Clone and start
-git clone <repository-url>
+git clone git@github.com:merkle-ne-tools/frontend-interview-games-api.git
 cd game-db
 docker-compose up --build
 ```

@@ -1,8 +1,14 @@
 # 🎮 Merkle Games API
 
-Backend API for frontend technical assignments.
+Welcome to the games DB assignment. As this repo serves as a foundation for multiple frontend technical assignments, it includes a backend RESTful API, GraphQL, GraphQL Playground, database schema, and documentation to help you get started quickly.
 
-## 🚀 Quick Start
+## Getting Started
+
+### Prerequisites
+- Docker and Docker Compose installed on your machine. ([Docker Installation Guide](https://docs.docker.com/get-docker/)
+- Alternatively, Podman can be used as a drop-in replacement for Docker.
+
+### Running the Application
 
 ```bash
 # Clone and start
@@ -51,6 +57,7 @@ Build a frontend application (Next.js, Nuxt, React, Vue, etc.) that connects to 
 
 ## 🐳 Docker/Podman Commands
 
+# Stopping the Application
 ```bash
 # From the server/ directory
 # cd server
@@ -63,9 +70,6 @@ docker-compose logs -f app
 
 # Stop
 docker-compose down
-
-# Full reset
-docker-compose down -v && docker-compose up --build
 ```
 
 ---

@@ -33,7 +33,7 @@ export const UserReviewModel = (sequelize: Sequelize, dataTypes: typeof DataType
       }
     },
     rating: {
-      type: dataTypes.DECIMAL(2, 1),
+      type: dataTypes.REAL,
       allowNull: false,
       field: 'rating_score',
       validate: {

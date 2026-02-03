@@ -19,3 +19,6 @@ build/
 .env.test.local
 .env.production.local
 .venv/
+
+# SQLite database
+data/*.sqlite

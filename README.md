@@ -16,6 +16,7 @@ docker-compose up --build
 - ⚡ **GraphQL**: `http://localhost:8000/graphql`
 - 🛠️ **GraphQL Playground**: `http://localhost:8000/graphql-sandbox`
 - 📖 **Swagger Documentation**: `http://localhost:8000/api-docs`
+- 🎨 **Media Generator**: `http://localhost:8000/media/{seed}?w=400&h=300`
 
 ## 🎯 For Frontend Developers
 
@@ -97,6 +98,56 @@ npm run test:rest     # REST tests only
 npm run test:graphql  # GraphQL tests only
 ```
 
+### Media/Image Generator
+
+The API includes a deterministic pattern generator for placeholder images. Each seed produces a unique, reproducible pattern.
+
+**Endpoint:** `GET /media/:seed`
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `w` | number | 400 | Image width (10-2000px) |
+| `h` | number | 400 | Image height (10-2000px) |
+
+**Behavior:**
+- If only `w` is provided, generates a square image (`w` × `w`)
+- If only `h` is provided, generates a square image (`h` × `h`)
+- If neither is provided, defaults to 400×400
+- Pattern maintains 1:1 aspect ratio (center-cropped for non-square dimensions)
+- Same seed always produces the same pattern regardless of dimensions
+- Returns WebP format with aggressive caching headers
+
+**Examples:**
+```bash
+# Default 400x400 pattern
+GET /media/my-game-title
+
+# Custom square (only width)
+GET /media/my-game-title?w=200
+
+# Custom dimensions
+GET /media/my-game-title?w=800&h=450
+
+# Using game title as seed (deterministic)
+GET /media/The%20Legend%20of%20Zelda?w=300&h=400
+```
+
+**Usage in Frontend:**
+```html
+<!-- Use game title or ID as seed for consistent images -->
+<img src="http://localhost:8000/media/game-123?w=300&h=200" alt="Game cover" />
+
+<!-- Relative URL (recommended) -->
+<img src="/media/game-123?w=300&h=200" alt="Game cover" />
+```
+
+**Features:**
+- Deterministic: Same seed = same pattern (great for caching)
+- Fast: Generated on-the-fly, no storage needed
+- Cacheable: Returns `Cache-Control: immutable` headers
+- Variety: 5 pattern types (geometric, gradient, circles, stripes, mosaic)
+
 ### Project Structure
 
 ```
@@ -107,7 +158,8 @@ game-db/
 │   ├── graphql/        # GraphQL schema
 │   ├── models/         # Sequelize models
 │   ├── routes/         # API routes
-│   └── index.js        # Entry point
+│   ├── utils/          # Utilities (pattern generator)
+│   └── index.ts        # Entry point
 ├── scripts/            # Seed generation
 ├── seeders/            # Database seeders
 ├── migrations/         # Migrations

@@ -1,25 +1,6 @@
 version: '3.8'
 
 services:
-  postgres:
-    build:
-      context: .
-      dockerfile: Dockerfile.postgres
-    container_name: gamedb-postgres
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=gamedb_pass
-      - POSTGRES_DB=gamedb
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   app:
     build:
       context: .
@@ -27,12 +8,8 @@ services:
     container_name: gamedb-app
     environment:
       - NODE_ENV=development
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=gamedb
-      - DB_USER=postgres
-      - DB_PASSWORD=gamedb_pass
       - PORT=8000
+      - DB_STORAGE=/app/data/gamedb.sqlite
       - JWT_SECRET=your-secret-key-here-change-in-production
       - API_VERSION=v1
       - API_PREFIX=/api
@@ -40,19 +17,13 @@ services:
       - GRAPHQL_PLAYGROUND=true
     ports:
       - "8000:8000"
-    depends_on:
-      postgres:
-        condition: service_healthy
     volumes:
       - ./src:/app/src
-      - ./migrations:/app/migrations
       - ./seeders:/app/seeders
+      - ./data:/app/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
-
-volumes:
-  postgres_data:
+      start_period: 30s

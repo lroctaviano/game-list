@@ -37,7 +37,7 @@ export const GameModel = (sequelize: Sequelize, dataTypes: typeof DataTypes): Ga
       allowNull: true
     },
     release_date: {
-      type: dataTypes.DATE,
+      type: dataTypes.STRING, // SQLite stores dates as strings
       allowNull: true
     },
     developer_id: {
@@ -78,6 +78,16 @@ export const GameModel = (sequelize: Sequelize, dataTypes: typeof DataTypes): Ga
     Game.hasMany(models.UserReview, {
       foreignKey: 'game_id',
       as: 'reviews'
+    });
+    Game.belongsToMany(models.Image, {
+      through: models.ImageRelation,
+      foreignKey: 'related_id',
+      otherKey: 'image_id',
+      as: 'images',
+      constraints: false,
+      scope: {
+        related_type: 'Game'
+      }
     });
   };
 

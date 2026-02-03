@@ -19,6 +19,7 @@ const sequelize = new Sequelize(
     host: dbConfig.host,
     port: dbConfig.port,
     dialect: dbConfig.dialect,
+    storage: dbConfig.storage, // CRITICAL: Include storage for SQLite
     logging: dbConfig.logging,
     define: dbConfig.define
   }

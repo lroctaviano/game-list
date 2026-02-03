@@ -15,7 +15,7 @@ module.exports = {
         allowNull: false
       },
       image_type: {
-        type: Sequelize.ENUM('Screenshot', 'Cover', 'Artwork'),
+        type: Sequelize.STRING(20),
         allowNull: false
       },
       created_at: {

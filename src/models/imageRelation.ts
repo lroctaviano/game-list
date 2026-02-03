@@ -25,8 +25,11 @@ export const ImageRelationModel = (sequelize: Sequelize, dataTypes: typeof DataT
       }
     },
     related_type: {
-      type: dataTypes.ENUM('Game', 'Company', 'Genre', 'Rating', 'User'),
-      allowNull: false
+      type: dataTypes.STRING(20),
+      allowNull: false,
+      validate: {
+        isIn: [['Game', 'Company', 'Genre', 'Rating', 'User']]
+      }
     },
     related_id: {
       type: dataTypes.INTEGER,

@@ -13,6 +13,9 @@ const loadJSONData = (filename) => {
 module.exports = {
   up: async (queryInterface, Sequelize) => {
     try {
+      // Enable foreign key enforcement for SQLite
+      await queryInterface.sequelize.query('PRAGMA foreign_keys = ON;');
+
       console.log('🎮 Starting database seeding...');
 
       // 1. Seed Genres
@@ -45,10 +48,13 @@ module.exports = {
       // 3. Seed Users
       console.log('👤 Seeding users...');
       const usersData = loadJSONData('users.json');
+      // Default hashed password for seed data (password: "seedpassword123")
+      const defaultPasswordHash = '$2a$10$rQnM1.YP5YKxGpvLZCk5XeQZQZQZQZQZQZQZQZQZQZQZQZQZQZQZQ';
       const users = usersData.users.map(user => ({
         id: user.id,
         username: user.username,
         email: user.email,
+        password: defaultPasswordHash,
         registration_date: user.registrationDate,
         created_at: new Date(),
         updated_at: new Date()
@@ -115,62 +121,145 @@ module.exports = {
       }
       console.log(`✅ Inserted ${reviews.length} reviews`);
 
-      // 6. Seed Images
-      console.log('🖼️ Seeding images...');
-      const imagesData = loadJSONData('images.json');
-      const images = imagesData.images.map(image => ({
-        id: image.id,
-        image_url: image.imageUrl,
-        image_type: image.imageType,
-        created_at: new Date(),
-        updated_at: new Date()
-      }));
+      // 6. Seed Images (using deterministic media generator URLs)
+      console.log('🖼️ Seeding images with media generator URLs...');
 
-      // Insert images in batches
-      for (let i = 0; i < images.length; i += batchSize) {
-        const batch = images.slice(i, i + batchSize);
-        await queryInterface.bulkInsert('images', batch);
-        if (i % 200 === 0) {
-          console.log(`  Inserted ${i + batch.length}/${images.length} images`);
+      // Helper to create URL-safe seed from entity name
+      const createSeed = (name, suffix) => encodeURIComponent(`${name}-${suffix}`);
+
+      // Generate images for games (cover, screenshots, artwork)
+      const generatedImages = [];
+      const imageRelations = [];
+      let imageId = 1;
+      let relationId = 1;
+
+      // Game images: 4 images per game (1 cover, 2 screenshots, 1 artwork)
+      for (const game of gamesData.games) {
+        const gameImages = [
+          { type: 'Cover', suffix: 'cover', w: 300, h: 400 },
+          { type: 'Screenshot', suffix: 'screenshot-1', w: 800, h: 450 },
+          { type: 'Screenshot', suffix: 'screenshot-2', w: 800, h: 450 },
+          { type: 'Artwork', suffix: 'artwork', w: 600, h: 600 }
+        ];
+
+        for (const img of gameImages) {
+          generatedImages.push({
+            id: imageId,
+            image_url: `/media/${createSeed(game.title, img.suffix)}?w=${img.w}&h=${img.h}`,
+            image_type: img.type,
+            created_at: new Date(),
+            updated_at: new Date()
+          });
+
+          imageRelations.push({
+            id: relationId,
+            image_id: imageId,
+            related_type: 'Game',
+            related_id: game.id,
+            created_date: new Date().toISOString().split('T')[0],
+            created_at: new Date(),
+            updated_at: new Date()
+          });
+
+          imageId++;
+          relationId++;
         }
       }
-      console.log(`✅ Inserted ${images.length} images`);
 
-      // 7. Seed Image Relations (simplified - only link images that exist)
-      console.log('🔗 Seeding image relations...');
-      const imageRelationsData = loadJSONData('imageRelations.json');
-
-      // Filter to only include relations for images that actually exist (1-1038)
-      const validImageRelations = imageRelationsData.imageRelations
-        .filter(relation => relation.imageId <= images.length)
-        .map(relation => ({
-          id: relation.id,
-          image_id: relation.imageId,
-          related_type: relation.relatedType,
-          related_id: relation.relatedId,
-          created_date: relation.createdDate,
+      // Company images: 1 logo per company (using 'Artwork' type as closest match)
+      for (const company of companiesData.companies) {
+        generatedImages.push({
+          id: imageId,
+          image_url: `/media/${createSeed(company.name, 'logo')}?w=200`,
+          image_type: 'Artwork',
           created_at: new Date(),
           updated_at: new Date()
-        }));
+        });
 
-      // Insert image relations in batches
-      for (let i = 0; i < validImageRelations.length; i += batchSize) {
-        const batch = validImageRelations.slice(i, i + batchSize);
-        await queryInterface.bulkInsert('image_relations', batch);
+        imageRelations.push({
+          id: relationId,
+          image_id: imageId,
+          related_type: 'Company',
+          related_id: company.id,
+          created_date: new Date().toISOString().split('T')[0],
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+
+        imageId++;
+        relationId++;
+      }
+
+      // Genre images: 1 banner per genre (using 'Cover' type as closest match)
+      for (const genre of genresData.genres) {
+        generatedImages.push({
+          id: imageId,
+          image_url: `/media/${createSeed(genre.genreName, 'banner')}?w=800&h=200`,
+          image_type: 'Cover',
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+
+        imageRelations.push({
+          id: relationId,
+          image_id: imageId,
+          related_type: 'Genre',
+          related_id: genre.id,
+          created_date: new Date().toISOString().split('T')[0],
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+
+        imageId++;
+        relationId++;
+      }
+
+      // User avatars: 1 avatar per user (using 'Artwork' type as closest match)
+      for (const user of usersData.users) {
+        generatedImages.push({
+          id: imageId,
+          image_url: `/media/${createSeed(user.username, 'avatar')}?w=100`,
+          image_type: 'Artwork',
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+
+        imageRelations.push({
+          id: relationId,
+          image_id: imageId,
+          related_type: 'User',
+          related_id: user.id,
+          created_date: new Date().toISOString().split('T')[0],
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+
+        imageId++;
+        relationId++;
+      }
+
+      // Insert images in batches
+      for (let i = 0; i < generatedImages.length; i += batchSize) {
+        const batch = generatedImages.slice(i, i + batchSize);
+        await queryInterface.bulkInsert('images', batch);
         if (i % 200 === 0) {
-          console.log(`  Inserted ${i + batch.length}/${validImageRelations.length} image relations`);
+          console.log(`  Inserted ${i + batch.length}/${generatedImages.length} images`);
         }
       }
-      console.log(`✅ Inserted ${validImageRelations.length} image relations`);
+      console.log(`✅ Inserted ${generatedImages.length} images (using /media endpoint)`);
 
-      // Reset sequences to continue from the max ID
-      console.log('🔄 Resetting sequences...');
-      const tables = ['genres', 'companies', 'users', 'games', 'user_reviews', 'images', 'image_relations'];
-      for (const table of tables) {
-        await queryInterface.sequelize.query(
-          `SELECT setval('${table}_id_seq', (SELECT MAX(id) FROM ${table}));`
-        );
+      // 7. Seed Image Relations
+      console.log('🔗 Seeding image relations...');
+
+      // Insert image relations in batches
+      for (let i = 0; i < imageRelations.length; i += batchSize) {
+        const batch = imageRelations.slice(i, i + batchSize);
+        await queryInterface.bulkInsert('image_relations', batch);
+        if (i % 200 === 0) {
+          console.log(`  Inserted ${i + batch.length}/${imageRelations.length} image relations`);
+        }
       }
+      console.log(`✅ Inserted ${imageRelations.length} image relations`);
 
       console.log('\n🎉 Database seeding completed successfully!');
       console.log('📊 Final counts:');
@@ -179,7 +268,7 @@ module.exports = {
       console.log(`  - Users: ${users.length}`);
       console.log(`  - Games: ${games.length}`);
       console.log(`  - Reviews: ${reviews.length}`);
-      console.log(`  - Images: ${images.length}`);
+      console.log(`  - Images: ${generatedImages.length}`);
       console.log(`  - Image Relations: ${imageRelations.length}`);
 
     } catch (error) {

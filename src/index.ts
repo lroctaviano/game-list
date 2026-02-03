@@ -11,6 +11,7 @@ import swaggerUi from 'swagger-ui-express';
 
 import db from './models';
 import routes from './routes';
+import mediaRoutes from './routes/mediaRoutes';
 import { typeDefs, resolvers } from './graphql';
 import { colorize, createBox } from './utils/colors';
 
@@ -59,6 +60,9 @@ app.get('/graphql-sandbox', (req: Request, res: Response) => {
   res.sendFile('graphql-sandbox.html', { root: 'public' });
 });
 
+// Media routes (deterministic pattern generator)
+app.use('/media', mediaRoutes);
+
 // API Routes
 app.use(`${process.env.API_PREFIX || '/api'}/${process.env.API_VERSION || 'v1'}`, routes);
 
@@ -86,9 +90,10 @@ async function startServer(): Promise<void> {
 
     // Sync database models (in production, use migrations)
     if (process.env.NODE_ENV !== 'production') {
-      await db.sequelize.sync({ alter: false });
+      await db.sequelize.sync({ alter: false, force: false });
       console.log(colorize.success('🗄️  Database models synchronized successfully!'));
     }
+
 
     // Create HTTP server
     const httpServer = http.createServer(app);
@@ -135,6 +140,7 @@ async function startServer(): Promise<void> {
       `  ⚡ GraphQL: ${colorize.url(`http://localhost:${PORT}${process.env.GRAPHQL_PATH || '/graphql'}`)}`,
       `  🛠️  Sandbox: ${colorize.url(`http://localhost:${PORT}/graphql-sandbox`)}`,
       `  📖 API Docs: ${colorize.url(`http://localhost:${PORT}/api-docs`)}`,
+      `  🎨 Media:   ${colorize.url(`http://localhost:${PORT}/media/example-seed?w=400`)}`,
       '',
       `${colorize.success('✅ All systems operational!')}`
     ];
@@ -153,7 +159,9 @@ async function startServer(): Promise<void> {
   }
 }
 
-// Start the server
-startServer();
+// Start the server (skip when imported in test environment)
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
 
 export default app;

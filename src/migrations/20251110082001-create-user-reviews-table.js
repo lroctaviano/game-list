@@ -31,12 +31,8 @@ module.exports = {
         onDelete: 'CASCADE'
       },
       rating_score: {
-        type: Sequelize.DECIMAL(2, 1),
-        allowNull: false,
-        validate: {
-          min: 0,
-          max: 10
-        }
+        type: Sequelize.REAL,
+        allowNull: false
       },
       review_text: {
         type: Sequelize.TEXT,
@@ -45,7 +41,7 @@ module.exports = {
       review_date: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       },
       created_at: {
         type: Sequelize.DATE,

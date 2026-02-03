@@ -14,6 +14,21 @@
     { "id": 12, "genreName": "Platformer" },
     { "id": 13, "genreName": "Survival" },
     { "id": 14, "genreName": "Battle Royale" },
-    { "id": 15, "genreName": "MMORPG" }
+    { "id": 15, "genreName": "MMORPG" },
+    { "id": 16, "genreName": "Roguelike" },
+    { "id": 17, "genreName": "Metroidvania" },
+    { "id": 18, "genreName": "City Builder" },
+    { "id": 19, "genreName": "Farming Sim" },
+    { "id": 20, "genreName": "Visual Novel" },
+    { "id": 21, "genreName": "Card Game" },
+    { "id": 22, "genreName": "Music/Rhythm" },
+    { "id": 23, "genreName": "Tower Defense" },
+    { "id": 24, "genreName": "Sandbox" },
+    { "id": 25, "genreName": "Stealth" },
+    { "id": 26, "genreName": "Hack and Slash" },
+    { "id": 27, "genreName": "Party Game" },
+    { "id": 28, "genreName": "Turn-Based Tactics" },
+    { "id": 29, "genreName": "Open World" },
+    { "id": 30, "genreName": "Casual" }
   ]
 }

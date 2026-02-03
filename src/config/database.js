@@ -1,61 +1,19 @@
-const { config } = require('dotenv');
-config();
+require('dotenv').config();
 
 module.exports = {
   development: {
-    username: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'gamedb_pass',
-    database: process.env.DB_NAME || 'gamedb',
-    host: process.env.DB_HOST || 'postgres',
-    port: parseInt(process.env.DB_PORT || '5432'),
-    dialect: 'postgres',
-    logging: false,
-    dialectOptions: {
-      connectTimeout: 10000,
-      idle_in_transaction_session_timeout: 30000,
-      ssl: false
-    },
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
-    },
-    define: {
-      timestamps: true,
-      underscored: true
-    }
+    dialect: 'sqlite',
+    storage: process.env.DB_STORAGE || './data/gamedb.sqlite',
+    logging: false
   },
   test: {
-    username: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'gamedb_pass',
-    database: process.env.DB_NAME || 'gamedb_test',
-    host: process.env.DB_HOST || 'postgres',
-    port: parseInt(process.env.DB_PORT || '5432'),
-    dialect: 'postgres',
-    logging: false,
-    define: {
-      timestamps: true,
-      underscored: true
-    }
+    dialect: 'sqlite',
+    storage: ':memory:',
+    logging: false
   },
   production: {
-    username: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT || '5432'),
-    dialect: 'postgres',
-    logging: false,
-    define: {
-      timestamps: true,
-      underscored: true
-    },
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false
-      }
-    }
+    dialect: 'sqlite',
+    storage: process.env.DB_STORAGE || './data/gamedb.sqlite',
+    logging: false
   }
 };

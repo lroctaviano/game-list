@@ -28,7 +28,7 @@ module.exports = {
         allowNull: true
       },
       company_type: {
-        type: Sequelize.ENUM('Developer', 'Publisher'),
+        type: Sequelize.STRING(20),
         allowNull: false
       },
       created_at: {

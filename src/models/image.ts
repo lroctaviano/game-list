@@ -21,8 +21,11 @@ export const ImageModel = (sequelize: Sequelize, dataTypes: typeof DataTypes): I
       allowNull: false
     },
     image_type: {
-      type: dataTypes.ENUM('Screenshot', 'Cover', 'Artwork'),
-      allowNull: false
+      type: dataTypes.STRING(20),
+      allowNull: false,
+      validate: {
+        isIn: [['Screenshot', 'Cover', 'Artwork']]
+      }
     }
   }, {
     tableName: 'images',
@@ -34,6 +37,16 @@ export const ImageModel = (sequelize: Sequelize, dataTypes: typeof DataTypes): I
     Image.hasMany(models.ImageRelation, {
       foreignKey: 'image_id',
       as: 'relations'
+    });
+    Image.belongsToMany(models.Game, {
+      through: models.ImageRelation,
+      foreignKey: 'image_id',
+      otherKey: 'related_id',
+      as: 'games',
+      constraints: false,
+      scope: {
+        related_type: 'Game'
+      }
     });
   };
 

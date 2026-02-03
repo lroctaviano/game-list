@@ -136,6 +136,26 @@ describe('REST API GET Endpoints', () => {
       expect(game.data).toHaveProperty('publisher');
     });
 
+    test('GET /api/v1/games should include images in response', async () => {
+      const response: Response = await request(baseURL)
+        .get('/api/v1/games?limit=5')
+        .expect(200);
+
+      const gamesResponse: PaginatedGamesResponse = response.body;
+      expect(gamesResponse.data.length).toBeGreaterThan(0);
+
+      // Check that at least one game has images
+      const gamesWithImages = gamesResponse.data.filter((game: any) => game.images && game.images.length > 0);
+      expect(gamesWithImages.length).toBeGreaterThan(0);
+
+      // Verify image structure
+      const gameWithImages = gamesWithImages[0] as any;
+      expect(Array.isArray(gameWithImages.images)).toBe(true);
+      expect(gameWithImages.images[0]).toHaveProperty('id');
+      expect(gameWithImages.images[0]).toHaveProperty('image_url');
+      expect(gameWithImages.images[0]).toHaveProperty('image_type');
+    });
+
     test('GET /api/v1/games/:id with invalid ID should return 404', async () => {
       const response: Response = await request(baseURL)
         .get('/api/v1/games/999999')
@@ -143,6 +163,112 @@ describe('REST API GET Endpoints', () => {
 
       const errorResponse: ErrorResponse = response.body;
       expect(errorResponse).toHaveProperty('error');
+    });
+
+    test('GET /api/v1/games with search filter should return matching games', async () => {
+      const response: Response = await request(baseURL)
+        .get('/api/v1/games?search=Adventure&limit=5')
+        .expect(200);
+
+      const gamesResponse: PaginatedGamesResponse = response.body;
+      expect(gamesResponse.data.length).toBeGreaterThan(0);
+      expect(gamesResponse.data.length).toBeLessThanOrEqual(5);
+
+      // All games should have 'Adventure' in the title (case-insensitive)
+      gamesResponse.data.forEach(game => {
+        expect(game.title.toLowerCase()).toContain('adventure');
+      });
+    });
+
+    test('GET /api/v1/games with platform filter should return matching games', async () => {
+      const response: Response = await request(baseURL)
+        .get('/api/v1/games?platform=PC&limit=5')
+        .expect(200);
+
+      const gamesResponse: PaginatedGamesResponse = response.body;
+      expect(gamesResponse.data.length).toBeGreaterThan(0);
+      expect(gamesResponse.data.length).toBeLessThanOrEqual(5);
+
+      // All games should have 'PC' in the platform (case-insensitive)
+      gamesResponse.data.forEach(game => {
+        expect(game.platform?.toLowerCase()).toContain('pc');
+      });
+    });
+
+    test('GET /api/v1/games with combined search and platform filter', async () => {
+      const response: Response = await request(baseURL)
+        .get('/api/v1/games?search=Legend&platform=PC&limit=5')
+        .expect(200);
+
+      const gamesResponse: PaginatedGamesResponse = response.body;
+
+      // Should return games matching both filters
+      gamesResponse.data.forEach(game => {
+        expect(game.title.toLowerCase()).toContain('legend');
+        expect(game.platform?.toLowerCase()).toContain('pc');
+      });
+    });
+
+    test('GET /api/v1/games/by-date-range should return game IDs within date range', async () => {
+      const response: Response = await request(baseURL)
+        .get('/api/v1/games/by-date-range?from=2020-01-01&to=2023-12-31')
+        .expect(200);
+
+      const body: { ids: number[] } = response.body;
+      expect(body).toHaveProperty('ids');
+      expect(Array.isArray(body.ids)).toBe(true);
+      expect(body.ids.length).toBeGreaterThan(0);
+
+      // All IDs should be numbers
+      body.ids.forEach(id => {
+        expect(typeof id).toBe('number');
+        expect(id).toBeGreaterThan(0);
+      });
+    });
+
+    test('GET /api/v1/games/by-date-range without parameters should return 400', async () => {
+      const response: Response = await request(baseURL)
+        .get('/api/v1/games/by-date-range')
+        .expect(400);
+
+      const errorResponse: ErrorResponse = response.body;
+      expect(errorResponse).toHaveProperty('error');
+      expect(errorResponse.error).toContain('Both "from" and "to" date parameters are required');
+    });
+
+    test('GET /api/v1/games/by-date-range with invalid date format should return 400', async () => {
+      const response: Response = await request(baseURL)
+        .get('/api/v1/games/by-date-range?from=2020/01/01&to=2023-12-31')
+        .expect(400);
+
+      const errorResponse: ErrorResponse = response.body;
+      expect(errorResponse).toHaveProperty('error');
+      expect(errorResponse.error).toContain('Invalid date format');
+    });
+
+    test('GET /api/v1/games/by-date-range should return IDs in ascending date order', async () => {
+      const response: Response = await request(baseURL)
+        .get('/api/v1/games/by-date-range?from=2020-01-01&to=2020-12-31')
+        .expect(200);
+
+      const body: { ids: number[] } = response.body;
+      expect(body.ids.length).toBeGreaterThan(0);
+
+      // Verify games are ordered by date (oldest first) by fetching a couple
+      if (body.ids.length >= 2) {
+        const game1Response: Response = await request(baseURL)
+          .get(`/api/v1/games/${body.ids[0]}`)
+          .expect(200);
+        const game2Response: Response = await request(baseURL)
+          .get(`/api/v1/games/${body.ids[1]}`)
+          .expect(200);
+
+        const date1 = game1Response.body.data.release_date;
+        const date2 = game2Response.body.data.release_date;
+
+        // First game should have earlier or equal release date
+        expect(date1 <= date2).toBe(true);
+      }
     });
   });
 
@@ -274,6 +400,70 @@ describe('REST API GET Endpoints', () => {
 
       expect(response.text).toContain('GraphQL Sandbox');
       expect(response.text).toContain('embeddable-sandbox');
+    });
+  });
+
+  describe('Media Endpoints', () => {
+    test('GET /media/:seed should return WebP image with default dimensions', async () => {
+      const response: Response = await request(baseURL)
+        .get('/media/test-seed-123')
+        .expect(200);
+
+      expect(response.headers['content-type']).toBe('image/webp');
+      expect(response.headers['cache-control']).toContain('immutable');
+      expect(response.body).toBeInstanceOf(Buffer);
+      expect(response.body.length).toBeGreaterThan(0);
+    });
+
+    test('GET /media/:seed with width only should return square image', async () => {
+      const response: Response = await request(baseURL)
+        .get('/media/test-seed-456?w=200')
+        .expect(200);
+
+      expect(response.headers['content-type']).toBe('image/webp');
+      expect(response.headers['etag']).toContain('200x200');
+    });
+
+    test('GET /media/:seed with height only should return square image', async () => {
+      const response: Response = await request(baseURL)
+        .get('/media/test-seed-789?h=300')
+        .expect(200);
+
+      expect(response.headers['content-type']).toBe('image/webp');
+      expect(response.headers['etag']).toContain('300x300');
+    });
+
+    test('GET /media/:seed with custom dimensions should return sized image', async () => {
+      const response: Response = await request(baseURL)
+        .get('/media/test-seed-abc?w=400&h=200')
+        .expect(200);
+
+      expect(response.headers['content-type']).toBe('image/webp');
+      expect(response.headers['etag']).toContain('400x200');
+    });
+
+    test('GET /media/:seed should be deterministic (same seed = same image)', async () => {
+      const response1: Response = await request(baseURL)
+        .get('/media/deterministic-test?w=100')
+        .expect(200);
+
+      const response2: Response = await request(baseURL)
+        .get('/media/deterministic-test?w=100')
+        .expect(200);
+
+      expect(response1.body.equals(response2.body)).toBe(true);
+    });
+
+    test('GET /media/:seed should produce different images for different seeds', async () => {
+      const response1: Response = await request(baseURL)
+        .get('/media/seed-one?w=100')
+        .expect(200);
+
+      const response2: Response = await request(baseURL)
+        .get('/media/seed-two?w=100')
+        .expect(200);
+
+      expect(response1.body.equals(response2.body)).toBe(false);
     });
   });
 });

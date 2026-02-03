@@ -1,4 +1,4 @@
-import { Op } from 'sequelize';
+import { Op, where as seqWhere, fn, col } from 'sequelize';
 import { GraphQLContext, GameQueryArgs, PaginatedGamesResult } from '../../types';
 
 const gameResolvers = {
@@ -9,8 +9,14 @@ const gameResolvers = {
 
       const where: any = {};
       if (genreId) where.genre_id = genreId;
-      if (platform) where.platform = { [Op.iLike]: `%${platform}%` };
-      if (search) where.title = { [Op.iLike]: `%${search}%` };
+
+      // Use Sequelize fn and col for case-insensitive search in SQLite
+      if (platform) {
+        where.platform = seqWhere(fn('LOWER', col('platform')), Op.like, `%${platform.toLowerCase()}%`);
+      }
+      if (search) {
+        where.title = seqWhere(fn('LOWER', col('title')), Op.like, `%${search.toLowerCase()}%`);
+      }
 
       const result = await db.Game.findAndCountAll({
         where,
@@ -18,6 +24,9 @@ const gameResolvers = {
         offset,
         order: [['release_date', 'DESC']]
       });
+
+      // Fetch images for all games in this page using the resolver
+      // GraphQL will call the images resolver for each game automatically
 
       return {
         games: result.rows,
@@ -48,6 +57,36 @@ const gameResolvers = {
       });
 
       return game;
+    },
+
+    recentGameIds: async (_: any, __: any, { db }: GraphQLContext): Promise<string[]> => {
+      const games = await db.Game.findAll({
+        attributes: ['id'],
+        order: [['release_date', 'DESC']],
+        limit: 100
+      });
+
+      return games.map((game: any) => game.id.toString());
+    },
+
+    gameIdsByDateRange: async (_: any, { from, to }: { from: string; to: string }, { db }: GraphQLContext): Promise<string[]> => {
+      // Validate date format
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(from) || !dateRegex.test(to)) {
+        throw new Error('Invalid date format. Please use YYYY-MM-DD (e.g., 2020-01-01)');
+      }
+
+      const games = await db.Game.findAll({
+        attributes: ['id'],
+        where: {
+          release_date: {
+            [Op.between]: [from, to]
+          }
+        },
+        order: [['release_date', 'ASC']]
+      });
+
+      return games.map((game: any) => game.id.toString());
     }
   },
 
@@ -74,8 +113,8 @@ const gameResolvers = {
       });
       return imageRelations.map((rel: any) => rel.image);
     },
-    releaseDate: (game: any): string => {
-      return game.release_date;
+    releaseDate: (game: any): string | null => {
+      return game.release_date || null;
     },
     averageRating: async (game: any, _: any, { db }: GraphQLContext): Promise<number | null> => {
       const result = await db.UserReview.findOne({

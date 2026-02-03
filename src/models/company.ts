@@ -34,8 +34,11 @@ export const CompanyModel = (sequelize: Sequelize, dataTypes: typeof DataTypes):
       allowNull: true
     },
     company_type: {
-      type: dataTypes.ENUM('Developer', 'Publisher'),
-      allowNull: false
+      type: dataTypes.STRING(20),
+      allowNull: false,
+      validate: {
+        isIn: [['Developer', 'Publisher']]
+      }
     }
   }, {
     tableName: 'companies',

@@ -1,4 +1,4 @@
-# 🎮 Merkle Games API
+# Merkle Games API
 
 Welcome to the games DB assignment. As this repo serves as a foundation for multiple frontend technical assignments, it includes a backend RESTful API, GraphQL, GraphQL Playground, database schema, and documentation to help you get started quickly.
 
@@ -19,15 +19,15 @@ docker-compose up --build
 ```
 
 **API Endpoints:**
-- 🔗 **REST API**: `http://localhost:8000/api/v1`
-- ⚡ **GraphQL**: `http://localhost:8000/graphql`
-- 🛠️ **GraphQL Playground**: `http://localhost:8000/graphql-sandbox`
-- 📖 **Swagger Documentation**: `http://localhost:8000/api-docs`
-- 🎨 **Media Generator**: `http://localhost:8000/media/{seed}?w=400&h=300`
+- **REST API**: `http://localhost:8000/api/v1`
+- **GraphQL**: `http://localhost:8000/graphql`
+- **GraphQL Playground**: `http://localhost:8000/graphql-sandbox`
+- **Swagger Documentation**: `http://localhost:8000/api-docs`
+- **Media Generator**: `http://localhost:8000/media/{seed}?w=400&h=300`
 
-## 🎯 For Frontend Developers
+## For Frontend Developers
 
-**👉 Add your frontend project to the `client/` folder.**
+**Add your frontend project to the `client/` folder.**
 
 Build a frontend application (Next.js, Nuxt, React, Vue, etc.) that connects to this API to display games, reviews, companies, and genres.
 
@@ -42,12 +42,12 @@ Build a frontend application (Next.js, Nuxt, React, Vue, etc.) that connects to 
 - REST API: Visit the [Swagger UI](http://localhost:8000/api-docs) for interactive documentation
 - GraphQL: Use the [GraphQL Playground](http://localhost:8000/graphql-sandbox) to explore the schema
 
-## 📋 Prerequisites
+## Prerequisites
 
 - Docker and Docker Compose
 - That's it!
 
-## 🔌 Database Access (Optional)
+## Database Access (Optional)
 
 **Database Type:** SQLite
 
@@ -55,7 +55,7 @@ Build a frontend application (Next.js, Nuxt, React, Vue, etc.) that connects to 
 
 **Compatible Tools:** DB Browser for SQLite, TablePlus, DBeaver, DataGrip
 
-## 🐳 Docker/Podman Commands
+## Docker/Podman Commands
 
 # Stopping the Application
 ```bash
@@ -74,7 +74,7 @@ docker-compose down
 
 ---
 
-## 📚 Additional Information
+## Additional Information
 
 ### Database Schema
 
@@ -107,44 +107,17 @@ npm run test:graphql  # GraphQL tests only
 
 ### Media/Image Generator
 
-The API includes a deterministic pattern generator for placeholder images. Each seed produces a unique, reproducible pattern.
+The API includes a deterministic pattern generator for placeholder images. Image URLs are provided in the API responses and can be used directly in your frontend application.
 
-**Endpoint:** `GET /media/:seed`
+**Endpoint:** `GET /media/:seed?w=400&h=300`
 
-**Query Parameters:**
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `w` | number | 400 | Image width (10-2000px) |
-| `h` | number | 400 | Image height (10-2000px) |
-
-**Behavior:**
-- If only `w` is provided, generates a square image (`w` × `w`)
-- If only `h` is provided, generates a square image (`h` × `h`)
-- If neither is provided, defaults to 400×400
-- Pattern maintains 1:1 aspect ratio (center-cropped for non-square dimensions)
-- Same seed always produces the same pattern regardless of dimensions
-- Returns WebP format with aggressive caching headers
-
-**Examples:**
-```bash
-# Default 400x400 pattern
-GET /media/my-game-title
-
-# Custom square (only width)
-GET /media/my-game-title?w=200
-
-# Custom dimensions
-GET /media/my-game-title?w=800&h=450
-
-# Using game title as seed (deterministic)
-GET /media/The%20Legend%20of%20Zelda?w=300&h=400
-```
+Images are returned in WebP format with caching headers. The same seed always produces the same pattern for consistency.
 
 ### Project Structure
 
 ```
 game-api/
-├── client/             # 👉 Your frontend project goes here
+├── client/             # Your frontend project goes here
 └── server/             # Backend API
     ├── src/
     │   ├── config/         # Database config

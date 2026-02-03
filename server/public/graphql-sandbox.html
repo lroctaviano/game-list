@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Game DB - GraphQL Sandbox</title>
+  <title>Game API - GraphQL Sandbox</title>
   <style>
     body {
       margin: 0;
@@ -23,8 +23,8 @@
   <script>
     new window.EmbeddedSandbox({
       target: '#embeddableExplorer',
-      // Pass through runtime configuration if available
-      initialEndpoint: 'http://localhost:8000/graphql',
+      // Use relative URL to work with any port
+      initialEndpoint: `${window.location.origin}/graphql`,
       includeCookies: true,
       // Enhanced configuration for better syntax highlighting
       theme: 'dark',
@@ -35,7 +35,7 @@
         });
       },
       initialState: {
-        document: `# 🎮 Welcome to the Game DB GraphQL API!
+        document: `# 🎮 Welcome to the Game API GraphQL API!
 # Here are some example queries to get you started with proper syntax highlighting:
 
 # 📚 Get all games with their genre and developer information
@@ -58,6 +58,11 @@ query GetGames {
         name
         companyType
       }
+      images {
+        id
+        image_url
+        image_type
+      }
       averageRating
       totalReviews
     }
@@ -74,6 +79,11 @@ query GetGameWithReviews {
     description
     platform
     releaseDate
+    images {
+      id
+      image_url
+      image_type
+    }
     reviews {
       id
       ratingScore
@@ -127,9 +137,43 @@ query SearchGames {
       genre {
         genreName
       }
+      images {
+        id
+        image_url
+        image_type
+      }
     }
     total
   }
+}
+
+# 🖼️ Get games with their images
+query GetGamesWithImages {
+  games(limit: 10) {
+    games {
+      id
+      title
+      platform
+      releaseDate
+      images {
+        id
+        image_url
+        image_type
+      }
+    }
+    total
+  }
+}
+
+# 🕐 Get 100 most recent game IDs by release date
+query GetRecentGameIds {
+  recentGameIds
+}
+
+# 📅 Get game IDs by release date range
+# Note: Both 'from' and 'to' parameters are required (format: YYYY-MM-DD)
+query GetGameIdsByDateRange {
+  gameIdsByDateRange(from: "2020-01-01", to: "2023-12-31")
 }`,
         variables: {},
         headers: {}

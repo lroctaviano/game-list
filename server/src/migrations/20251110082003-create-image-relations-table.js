@@ -21,7 +21,7 @@ module.exports = {
         onDelete: 'CASCADE'
       },
       related_type: {
-        type: Sequelize.ENUM('Game', 'Company', 'Genre', 'Rating', 'User'),
+        type: Sequelize.STRING(20),
         allowNull: false
       },
       related_id: {
@@ -31,7 +31,7 @@ module.exports = {
       created_date: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       },
       created_at: {
         type: Sequelize.DATE,

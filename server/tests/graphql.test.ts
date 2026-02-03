@@ -25,44 +25,8 @@ interface GraphQLResponse<T = any> {
   }>;
 }
 
-interface IntrospectionResponse {
-  __schema: {
-    queryType: { name: string };
-    mutationType: { name: string } | null;
-    types: Array<{
-      name: string;
-      kind: string;
-    }>;
-  };
-}
-
-interface GameWithRelationsResponse extends GameAttributes {
-  id: number;
-  genre: GenreAttributes;
-  developer: CompanyAttributes;
-  publisher: CompanyAttributes;
-  reviews?: UserReviewAttributes[];
-}
-
-interface GenreWithGamesResponse extends GenreAttributes {
-  id: number;
-  games: GameAttributes[];
-}
-
-interface CompanyResponse extends CompanyAttributes {
-  id: number;
-}
-
-interface ReviewWithRelationsResponse extends UserReviewAttributes {
-  id: number;
-  user: UserAttributes;
-  game: GameAttributes;
-}
-
-// Since there's an Express v5 + Apollo Server v3 compatibility issue,
-// we'll test GraphQL queries using direct HTTP requests to the endpoint
-describe('GraphQL Query Tests', () => {
-  const baseURL = 'http://localhost:8000';
+describe('GraphQL API Integration Tests', () => {
+  const baseURL = `http://localhost:${process.env.PORT || 8000}`;
 
   beforeAll(async () => {
     // Wait for server to be ready
@@ -70,190 +34,643 @@ describe('GraphQL Query Tests', () => {
   });
 
   // Helper function to make GraphQL requests
-  const graphqlRequest = async (query: string, variables: Record<string, any> = {}): Promise<Response> => {
+  const graphqlRequest = async <T = any>(
+    query: string,
+    variables: Record<string, any> = {}
+  ): Promise<GraphQLResponse<T>> => {
     const requestBody: GraphQLRequest = { query, variables };
-    return request(baseURL)
+    const response: Response = await request(baseURL)
       .post('/graphql')
       .send(requestBody)
-      .set('Content-Type', 'application/json');
+      .set('Content-Type', 'application/json')
+      .expect(200);
+
+    return response.body as GraphQLResponse<T>;
   };
 
-  describe('Schema Introspection', () => {
-    test('Should support introspection queries', async () => {
+  describe('Games Queries', () => {
+    test('Should fetch paginated games with all fields including releaseDate', async () => {
       const query = `
-        query IntrospectionQuery {
-          __schema {
-            queryType { name }
-            mutationType { name }
-            types {
-              name
-              kind
+        query GetGames {
+          games(limit: 5) {
+            games {
+              id
+              title
+              description
+              platform
+              releaseDate
+              genre {
+                genreName
+              }
+              developer {
+                name
+                companyType
+              }
+              publisher {
+                name
+                companyType
+              }
+              averageRating
+              totalReviews
+            }
+            total
+            page
+            totalPages
+          }
+        }
+      `;
+
+      const result = await graphqlRequest<{ games: any }>(query);
+
+      // Should not have errors
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toBeDefined();
+      expect(result.data?.games).toBeDefined();
+      expect(result.data?.games.games).toBeInstanceOf(Array);
+      expect(result.data?.games.games.length).toBeGreaterThan(0);
+      expect(result.data?.games.games.length).toBeLessThanOrEqual(5);
+
+      // Check first game has all required fields
+      const firstGame = result.data?.games.games[0];
+      expect(firstGame).toHaveProperty('id');
+      expect(firstGame).toHaveProperty('title');
+      expect(firstGame).toHaveProperty('platform');
+      expect(firstGame).toHaveProperty('releaseDate');
+      expect(firstGame).toHaveProperty('genre');
+      expect(firstGame.genre).toHaveProperty('genreName');
+
+      // Verify releaseDate is a valid date string or null
+      if (firstGame.releaseDate) {
+        expect(typeof firstGame.releaseDate).toBe('string');
+        // Should match YYYY-MM-DD format
+        expect(firstGame.releaseDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      }
+
+      // Check pagination metadata
+      expect(result.data?.games.total).toBeGreaterThan(0);
+      expect(result.data?.games.page).toBe(1);
+      expect(result.data?.games.totalPages).toBeGreaterThan(0);
+    });
+
+    test('Should fetch games with images included', async () => {
+      const query = `
+        query GetGamesWithImages {
+          games(limit: 10) {
+            games {
+              id
+              title
+              images {
+                id
+                image_url
+                image_type
+              }
+            }
+            total
+          }
+        }
+      `;
+
+      const result = await graphqlRequest<{ games: any }>(query);
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toBeDefined();
+      expect(result.data?.games.games).toBeInstanceOf(Array);
+
+      // Find at least one game with images
+      const gamesWithImages = result.data?.games.games.filter((game: any) => game.images && game.images.length > 0);
+      expect(gamesWithImages.length).toBeGreaterThan(0);
+
+      // Verify image structure
+      const gameWithImages = gamesWithImages[0];
+      expect(Array.isArray(gameWithImages.images)).toBe(true);
+      expect(gameWithImages.images[0]).toHaveProperty('id');
+      expect(gameWithImages.images[0]).toHaveProperty('image_url');
+      expect(gameWithImages.images[0]).toHaveProperty('image_type');
+    });
+
+    test('Should fetch a specific game with reviews', async () => {
+      const query = `
+        query GetGameWithReviews($id: ID!) {
+          game(id: $id) {
+            id
+            title
+            description
+            platform
+            releaseDate
+            reviews {
+              id
+              ratingScore
+              reviewText
+              user {
+                username
+              }
+            }
+            averageRating
+            totalReviews
+          }
+        }
+      `;
+
+      const result = await graphqlRequest<{ game: any }>(query, { id: "1" });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data).toBeDefined();
+      expect(result.data?.game).toBeDefined();
+      expect(result.data?.game.id).toBe("1");
+      expect(result.data?.game.title).toBeDefined();
+      expect(result.data?.game).toHaveProperty('releaseDate');
+
+      // Verify releaseDate works
+      if (result.data?.game.releaseDate) {
+        expect(typeof result.data.game.releaseDate).toBe('string');
+        expect(result.data.game.releaseDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      }
+    });
+
+    test('Should search games by title', async () => {
+      const query = `
+        query SearchGames($search: String!, $limit: Int) {
+          games(search: $search, limit: $limit) {
+            games {
+              id
+              title
+              releaseDate
+              genre {
+                genreName
+              }
+            }
+            total
+          }
+        }
+      `;
+
+      const result = await graphqlRequest<{ games: any }>(query, {
+        search: "Adventure",
+        limit: 3
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.games.games).toBeInstanceOf(Array);
+
+      // All results should contain "Adventure" in the title
+      result.data?.games.games.forEach((game: any) => {
+        expect(game.title.toLowerCase()).toContain('adventure');
+        expect(game).toHaveProperty('releaseDate');
+      });
+    });
+
+    test('Should fetch recent game IDs sorted by release date', async () => {
+      const query = `
+        query GetRecentGameIds {
+          recentGameIds
+        }
+      `;
+
+      const result = await graphqlRequest<{ recentGameIds: string[] }>(query);
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.recentGameIds).toBeInstanceOf(Array);
+      expect(result.data?.recentGameIds.length).toBeGreaterThan(0);
+      expect(result.data?.recentGameIds.length).toBeLessThanOrEqual(100);
+
+      // Should be array of ID strings
+      result.data?.recentGameIds.forEach((id: string) => {
+        expect(typeof id).toBe('string');
+        expect(parseInt(id)).toBeGreaterThan(0);
+      });
+    });
+
+    test('Should fetch game IDs by date range', async () => {
+      const query = `
+        query GetGameIdsByDateRange($from: String!, $to: String!) {
+          gameIdsByDateRange(from: $from, to: $to)
+        }
+      `;
+
+      const result = await graphqlRequest<{ gameIdsByDateRange: string[] }>(query, {
+        from: '2020-01-01',
+        to: '2023-12-31'
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.gameIdsByDateRange).toBeInstanceOf(Array);
+      expect(result.data?.gameIdsByDateRange.length).toBeGreaterThan(0);
+
+      // Should be array of ID strings
+      result.data?.gameIdsByDateRange.forEach((id: string) => {
+        expect(typeof id).toBe('string');
+        expect(parseInt(id)).toBeGreaterThan(0);
+      });
+    });
+
+    test('Should reject date range query with invalid date format', async () => {
+      const query = `
+        query GetGameIdsByDateRange($from: String!, $to: String!) {
+          gameIdsByDateRange(from: $from, to: $to)
+        }
+      `;
+
+      const result = await graphqlRequest<{ gameIdsByDateRange: string[] }>(query, {
+        from: '2020/01/01',
+        to: '2023-12-31'
+      });
+
+      expect(result.errors).toBeDefined();
+      expect(result.errors![0].message).toContain('Invalid date format');
+    });
+
+    test('Should return empty array for date range with no games', async () => {
+      const query = `
+        query GetGameIdsByDateRange($from: String!, $to: String!) {
+          gameIdsByDateRange(from: $from, to: $to)
+        }
+      `;
+
+      const result = await graphqlRequest<{ gameIdsByDateRange: string[] }>(query, {
+        from: '1900-01-01',
+        to: '1900-12-31'
+      });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.gameIdsByDateRange).toBeInstanceOf(Array);
+      expect(result.data?.gameIdsByDateRange.length).toBe(0);
+    });
+
+    test('Should filter games by genre', async () => {
+      const query = `
+        query GetGamesByGenre($genreId: ID!) {
+          games(genreId: $genreId, limit: 5) {
+            games {
+              id
+              title
+              releaseDate
+              genre {
+                id
+                genreName
+              }
+            }
+            total
+          }
+        }
+      `;
+
+      const result = await graphqlRequest<{ games: any }>(query, { genreId: "1" });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.games.games).toBeInstanceOf(Array);
+
+      // All games should have the specified genre
+      result.data?.games.games.forEach((game: any) => {
+        expect(game.genre.id).toBe("1");
+      });
+    });
+
+    test('Should filter games by platform', async () => {
+      const query = `
+        query GetGamesByPlatform($platform: String!) {
+          games(platform: $platform, limit: 5) {
+            games {
+              id
+              title
+              platform
+              releaseDate
+            }
+            total
+          }
+        }
+      `;
+
+      const result = await graphqlRequest<{ games: any }>(query, { platform: "PC" });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.games.games).toBeInstanceOf(Array);
+
+      // All games should have PC in platform
+      result.data?.games.games.forEach((game: any) => {
+        expect(game.platform.toLowerCase()).toContain('pc');
+      });
+    });
+  });
+
+  describe('Genres Queries', () => {
+    test('Should fetch all genres with games', async () => {
+      const query = `
+        query GetGenres {
+          genres {
+            id
+            genreName
+            games {
+              id
+              title
+              platform
+              releaseDate
+            }
+            createdAt
+            updatedAt
+          }
+        }
+      `;
+
+      const result = await graphqlRequest<{ genres: any[] }>(query);
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.genres).toBeInstanceOf(Array);
+      expect(result.data?.genres.length).toBeGreaterThan(0);
+
+      const firstGenre = result.data?.genres[0];
+      expect(firstGenre).toHaveProperty('id');
+      expect(firstGenre).toHaveProperty('genreName');
+      expect(firstGenre).toHaveProperty('games');
+      expect(firstGenre.games).toBeInstanceOf(Array);
+
+      // Check games have releaseDate
+      if (firstGenre.games.length > 0) {
+        expect(firstGenre.games[0]).toHaveProperty('releaseDate');
+      }
+    });
+
+    test('Should fetch a specific genre by ID', async () => {
+      const query = `
+        query GetGenre($id: ID!) {
+          genre(id: $id) {
+            id
+            genreName
+            games {
+              id
+              title
+              releaseDate
             }
           }
         }
       `;
 
-      // Note: Due to Express v5 compatibility issue, we expect this to potentially fail
-      // but we'll test the sandbox endpoint which provides the same functionality
-      const sandboxResponse: Response = await request(baseURL)
-        .get('/graphql-sandbox')
-        .expect(200);
+      const result = await graphqlRequest<{ genre: any }>(query, { id: "1" });
 
-      expect(sandboxResponse.text).toContain('GraphQL Sandbox');
-      expect(sandboxResponse.text).toContain('embeddable-sandbox');
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.genre).toBeDefined();
+      expect(result.data?.genre.id).toBe("1");
+      expect(result.data?.genre.genreName).toBeDefined();
     });
   });
 
-  describe('Games Queries', () => {
-    test('Should test games query structure (via sandbox verification)', async () => {
-      const sandboxResponse: Response = await request(baseURL)
-        .get('/graphql-sandbox')
-        .expect(200);
+  describe('Companies Queries', () => {
+    test('Should fetch all companies', async () => {
+      const query = `
+        query GetCompanies {
+          companies {
+            id
+            name
+            companyType
+            country
+          }
+        }
+      `;
 
-      // Verify the sandbox contains our expected queries
-      expect(sandboxResponse.text).toContain('GetGames');
-      expect(sandboxResponse.text).toContain('games(limit: 5)');
-      expect(sandboxResponse.text).toContain('genre');
-      expect(sandboxResponse.text).toContain('developer');
+      const result = await graphqlRequest<{ companies: any[] }>(query);
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.companies).toBeInstanceOf(Array);
+      expect(result.data?.companies.length).toBeGreaterThan(0);
+
+      const firstCompany = result.data?.companies[0];
+      expect(firstCompany).toHaveProperty('id');
+      expect(firstCompany).toHaveProperty('name');
+      expect(firstCompany).toHaveProperty('companyType');
     });
 
-    test('Should verify GetGameWithReviews query structure', async () => {
-      const sandboxResponse: Response = await request(baseURL)
-        .get('/graphql-sandbox')
-        .expect(200);
+    test('Should fetch developers with their games including releaseDate', async () => {
+      const query = `
+        query GetDevelopers {
+          companies(type: Developer) {
+            id
+            name
+            companyType
+            country
+            developedGames {
+              id
+              title
+              releaseDate
+            }
+          }
+        }
+      `;
 
-      expect(sandboxResponse.text).toContain('GetGameWithReviews');
-      expect(sandboxResponse.text).toContain('game(id: "1")');
-      expect(sandboxResponse.text).toContain('reviews');
-      expect(sandboxResponse.text).toContain('ratingScore');
-    });
-  });
+      const result = await graphqlRequest<{ companies: any[] }>(query);
 
-  describe('Alternative GraphQL Testing via REST', () => {
-    // Since GraphQL endpoint has compatibility issues, we'll verify the data
-    // is accessible through REST endpoints that would power GraphQL resolvers
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.companies).toBeInstanceOf(Array);
 
-    test('Should verify games data is available (REST equivalent)', async () => {
-      const response: Response = await request(baseURL)
-        .get('/api/v1/games')
-        .expect(200);
+      // All should be developers
+      result.data?.companies.forEach((company: any) => {
+        expect(company.companyType).toBe('Developer');
 
-      expect(response.body.data.length).toBeGreaterThan(0);
-
-      // Test specific game with relationships (equivalent to GraphQL game query)
-      const gameResponse: Response = await request(baseURL)
-        .get('/api/v1/games/1')
-        .expect(200);
-
-      const game: GameWithRelationsResponse = gameResponse.body.data;
-      expect(game).toHaveProperty('title');
-      expect(game).toHaveProperty('genre');
-      expect(game).toHaveProperty('developer');
-      expect(game.genre).toHaveProperty('name');
-      expect(game.developer).toHaveProperty('name');
-    });
-
-    test('Should verify genre data with games (REST equivalent)', async () => {
-      const response: Response = await request(baseURL)
-        .get('/api/v1/genres/1')
-        .expect(200);
-
-      const genre: GenreWithGamesResponse = response.body.data;
-      expect(genre).toHaveProperty('name');
-      expect(genre).toHaveProperty('games');
-      expect(Array.isArray(genre.games)).toBe(true);
-
-      if (genre.games.length > 0) {
-        expect(genre.games[0]).toHaveProperty('title');
-      }
-    });
-
-    test('Should verify companies data (REST equivalent)', async () => {
-      const response: Response = await request(baseURL)
-        .get('/api/v1/companies')
-        .expect(200);
-
-      const companies: CompanyResponse[] = response.body.data;
-      expect(Array.isArray(companies)).toBe(true);
-      expect(companies.length).toBeGreaterThan(0);
-      expect(companies[0]).toHaveProperty('name');
-      expect(companies[0]).toHaveProperty('company_type');
-    });
-
-    test('Should verify reviews with relationships (REST equivalent)', async () => {
-      const response: Response = await request(baseURL)
-        .get('/api/v1/reviews/1')
-        .expect(200);
-
-      const review: ReviewWithRelationsResponse = response.body.data;
-      expect(review).toHaveProperty('rating');
-      expect(review).toHaveProperty('review_text');
-      expect(review).toHaveProperty('user');
-      expect(review).toHaveProperty('game');
-      expect(review.user).toHaveProperty('username');
-      expect(review.game).toHaveProperty('title');
-    });
-  });
-
-  describe('GraphQL Sandbox Functionality', () => {
-    test('Should have GraphQL sandbox with sample queries', async () => {
-      const response: Response = await request(baseURL)
-        .get('/graphql-sandbox')
-        .expect(200);
-
-      // Verify all expected sample queries are present
-      expect(response.text).toContain('GetGames');
-      expect(response.text).toContain('GetGameWithReviews');
-      expect(response.text).toContain('GetGenres');
-      expect(response.text).toContain('GetCompanies');
-
-      // Verify GraphQL schema references
-      expect(response.text).toContain('games {');
-      expect(response.text).toContain('genres {');
-      expect(response.text).toContain('companies(type: Developer)');
-      expect(response.text).toContain('reviews {');
-    });
-
-    test('Should have proper GraphQL endpoint configuration', async () => {
-      const response: Response = await request(baseURL)
-        .get('/graphql-sandbox')
-        .expect(200);
-
-      expect(response.text).toContain('http://localhost:8000/graphql');
-      expect(response.text).toContain('includeCookies: true');
-    });
-  });
-
-  describe('GraphQL Schema Validation', () => {
-    test('Should validate GraphQL types through sandbox', async () => {
-      const response: Response = await request(baseURL)
-        .get('/graphql-sandbox')
-        .expect(200);
-
-      // Check for expected GraphQL types in sample queries
-      const expectedFields: string[] = [
-        'id', 'title', 'description', 'releaseDate',
-        'genreName', 'name', 'companyType', 'ratingScore',
-        'reviewText', 'username', 'createdAt'
-      ];
-
-      expectedFields.forEach((field: string) => {
-        expect(response.text).toContain(field);
+        // Check developed games have releaseDate
+        if (company.developedGames && company.developedGames.length > 0) {
+          company.developedGames.forEach((game: any) => {
+            expect(game).toHaveProperty('releaseDate');
+          });
+        }
       });
     });
 
-    test('Should validate GraphQL relationships through sandbox', async () => {
+    test('Should fetch publishers', async () => {
+      const query = `
+        query GetPublishers {
+          companies(type: Publisher) {
+            id
+            name
+            companyType
+            publishedGames {
+              id
+              title
+              releaseDate
+            }
+          }
+        }
+      `;
+
+      const result = await graphqlRequest<{ companies: any[] }>(query);
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.companies).toBeInstanceOf(Array);
+
+      // All should be publishers
+      result.data?.companies.forEach((company: any) => {
+        expect(company.companyType).toBe('Publisher');
+      });
+    });
+
+    test('Should fetch a specific company by ID', async () => {
+      const query = `
+        query GetCompany($id: ID!) {
+          company(id: $id) {
+            id
+            name
+            companyType
+            country
+          }
+        }
+      `;
+
+      const result = await graphqlRequest<{ company: any }>(query, { id: "1" });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.company).toBeDefined();
+      expect(result.data?.company.id).toBe("1");
+    });
+  });
+
+  describe('Reviews Queries', () => {
+    test('Should fetch all reviews', async () => {
+      const query = `
+        query GetReviews {
+          reviews {
+            id
+            ratingScore
+            reviewText
+            user {
+              username
+            }
+            game {
+              title
+              releaseDate
+            }
+          }
+        }
+      `;
+
+      const result = await graphqlRequest<{ reviews: any[] }>(query);
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.reviews).toBeInstanceOf(Array);
+      expect(result.data?.reviews.length).toBeGreaterThan(0);
+
+      const firstReview = result.data?.reviews[0];
+      expect(firstReview).toHaveProperty('id');
+      expect(firstReview).toHaveProperty('ratingScore');
+      expect(firstReview).toHaveProperty('user');
+      expect(firstReview).toHaveProperty('game');
+      expect(firstReview.game).toHaveProperty('releaseDate');
+    });
+
+    test('Should filter reviews by game ID', async () => {
+      const query = `
+        query GetGameReviews($gameId: ID!) {
+          reviews(gameId: $gameId) {
+            id
+            ratingScore
+            game {
+              id
+              title
+            }
+          }
+        }
+      `;
+
+      const result = await graphqlRequest<{ reviews: any[] }>(query, { gameId: "1" });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.reviews).toBeInstanceOf(Array);
+
+      // All reviews should be for game 1
+      result.data?.reviews.forEach((review: any) => {
+        expect(review.game.id).toBe("1");
+      });
+    });
+
+    test('Should fetch a specific review by ID', async () => {
+      const query = `
+        query GetReview($id: ID!) {
+          review(id: $id) {
+            id
+            ratingScore
+            reviewText
+            user {
+              username
+              email
+            }
+            game {
+              title
+              releaseDate
+            }
+          }
+        }
+      `;
+
+      const result = await graphqlRequest<{ review: any }>(query, { id: "1" });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.review).toBeDefined();
+      expect(result.data?.review.id).toBe("1");
+      expect(result.data?.review.game).toHaveProperty('releaseDate');
+    });
+  });
+
+  describe('Users Queries', () => {
+    test('Should fetch all users', async () => {
+      const query = `
+        query GetUsers {
+          users {
+            id
+            username
+            email
+            reviews {
+              id
+              ratingScore
+              game {
+                title
+                releaseDate
+              }
+            }
+          }
+        }
+      `;
+
+      const result = await graphqlRequest<{ users: any[] }>(query);
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.users).toBeInstanceOf(Array);
+      expect(result.data?.users.length).toBeGreaterThan(0);
+
+      const firstUser = result.data?.users[0];
+      expect(firstUser).toHaveProperty('id');
+      expect(firstUser).toHaveProperty('username');
+      expect(firstUser).toHaveProperty('email');
+    });
+
+    test('Should fetch a specific user by ID', async () => {
+      const query = `
+        query GetUser($id: ID!) {
+          user(id: $id) {
+            id
+            username
+            email
+            reviews {
+              id
+              ratingScore
+            }
+          }
+        }
+      `;
+
+      const result = await graphqlRequest<{ user: any }>(query, { id: "1" });
+
+      expect(result.errors).toBeUndefined();
+      expect(result.data?.user).toBeDefined();
+      expect(result.data?.user.id).toBe("1");
+    });
+  });
+
+  describe('GraphQL Sandbox', () => {
+    test('Should serve GraphQL sandbox HTML', async () => {
       const response: Response = await request(baseURL)
         .get('/graphql-sandbox')
         .expect(200);
 
-      // Check for relationship queries
-      expect(response.text).toContain('genre {');
-      expect(response.text).toContain('developer {');
-      expect(response.text).toContain('publisher {');
-      expect(response.text).toContain('reviews {');
-      expect(response.text).toContain('user {');
-      expect(response.text).toContain('games {');
+      expect(response.text).toContain('GraphQL Sandbox');
+      expect(response.text).toContain('embeddable-sandbox');
+      expect(response.text).toContain('GetGames');
+      expect(response.text).toContain('releaseDate');
     });
   });
 });

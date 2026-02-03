@@ -41,7 +41,7 @@ const typeDefs = gql`
     genre: Genre
     platform: String
     release_date: String
-    releaseDate: String
+    releaseDate: String  # Can be null for games without release dates
     developer: Company
     publisher: Company
     reviews: [Review]
@@ -121,6 +121,8 @@ const typeDefs = gql`
     games(page: Int, limit: Int, genreId: ID, platform: String, search: String): PaginatedGames!
     game(id: ID!): Game
     gameStats(id: ID!): GameStats
+    recentGameIds: [ID!]!
+    gameIdsByDateRange(from: String!, to: String!): [ID!]!
 
     # Companies
     companies(type: CompanyType, country: String, search: String): [Company]!

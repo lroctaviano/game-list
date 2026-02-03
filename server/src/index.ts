@@ -11,6 +11,7 @@ import swaggerUi from 'swagger-ui-express';
 
 import db from './models';
 import routes from './routes';
+import mediaRoutes from './routes/mediaRoutes';
 import { typeDefs, resolvers } from './graphql';
 import { colorize, createBox } from './utils/colors';
 
@@ -30,7 +31,7 @@ const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Game DB API',
+      title: 'Game API',
       version: '1.0.0',
       description: 'A comprehensive API for managing video game database',
     },
@@ -59,6 +60,9 @@ app.get('/graphql-sandbox', (req: Request, res: Response) => {
   res.sendFile('graphql-sandbox.html', { root: 'public' });
 });
 
+// Media routes (deterministic pattern generator)
+app.use('/media', mediaRoutes);
+
 // API Routes
 app.use(`${process.env.API_PREFIX || '/api'}/${process.env.API_VERSION || 'v1'}`, routes);
 
@@ -86,9 +90,10 @@ async function startServer(): Promise<void> {
 
     // Sync database models (in production, use migrations)
     if (process.env.NODE_ENV !== 'production') {
-      await db.sequelize.sync({ alter: false });
+      await db.sequelize.sync({ alter: false, force: false });
       console.log(colorize.success('🗄️  Database models synchronized successfully!'));
     }
+
 
     // Create HTTP server
     const httpServer = http.createServer(app);
@@ -123,7 +128,7 @@ async function startServer(): Promise<void> {
     // Colorful startup messages
     console.log('');
     console.log(colorize.rainbow('🎮 ================================= 🎮'));
-    console.log(colorize.server('🚀 GAME DB SERVER STARTED SUCCESSFULLY! 🚀'));
+    console.log(colorize.server('🚀 GAME API SERVER STARTED SUCCESSFULLY! 🚀'));
     console.log(colorize.rainbow('🎮 ================================= 🎮'));
     console.log('');
 
@@ -135,16 +140,17 @@ async function startServer(): Promise<void> {
       `  ⚡ GraphQL: ${colorize.url(`http://localhost:${PORT}${process.env.GRAPHQL_PATH || '/graphql'}`)}`,
       `  🛠️  Sandbox: ${colorize.url(`http://localhost:${PORT}/graphql-sandbox`)}`,
       `  📖 API Docs: ${colorize.url(`http://localhost:${PORT}/api-docs`)}`,
+      `  🎨 Media:   ${colorize.url(`http://localhost:${PORT}/media/example-seed?w=400`)}`,
       '',
       `${colorize.success('✅ All systems operational!')}`
     ];
 
-    console.log(createBox(serverInfo, '🎮 GAME DATABASE API'));
+    console.log(createBox(serverInfo, '🎮 GAME API'));
     console.log('');
   } catch (error) {
     console.log('');
     console.log(colorize.error('❌ ================================== ❌'));
-    console.log(colorize.error('💥 FAILED TO START GAME DB SERVER! 💥'));
+    console.log(colorize.error('💥 FAILED TO START GAME API SERVER! 💥'));
     console.log(colorize.error('❌ ================================== ❌'));
     console.log('');
     console.error(colorize.error(`🚨 Error: ${(error as Error).message}`));
@@ -153,7 +159,9 @@ async function startServer(): Promise<void> {
   }
 }
 
-// Start the server
-startServer();
+// Start the server (skip when imported in test environment)
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
 
 export default app;

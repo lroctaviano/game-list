@@ -96,6 +96,77 @@ router.get('/', validatePaginationParams, gameController.getAllGames);
 
 /**
  * @swagger
+ * /games/recent-ids:
+ *   get:
+ *     summary: Get IDs of 100 most recent games by release date
+ *     tags: [Games]
+ *     responses:
+ *       200:
+ *         description: Array of game IDs
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ids:
+ *                   type: array
+ *                   items:
+ *                     type: integer
+ *                   description: Array of game IDs sorted by release date (newest first)
+ */
+router.get('/recent-ids', gameController.getRecentGameIds);
+
+/**
+ * @swagger
+ * /games/by-date-range:
+ *   get:
+ *     summary: Get game IDs by release date range
+ *     tags: [Games]
+ *     parameters:
+ *       - in: query
+ *         name: from
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2020-01-01"
+ *         description: Start date (YYYY-MM-DD)
+ *       - in: query
+ *         name: to
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2023-12-31"
+ *         description: End date (YYYY-MM-DD)
+ *     responses:
+ *       200:
+ *         description: Array of game IDs within the date range
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ids:
+ *                   type: array
+ *                   items:
+ *                     type: integer
+ *                   description: Array of game IDs sorted by release date (oldest first)
+ *       400:
+ *         description: Missing or invalid date parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: 'Both "from" and "to" date parameters are required. Format: YYYY-MM-DD'
+ */
+router.get('/by-date-range', gameController.getGameIdsByDateRange);
+
+/**
+ * @swagger
  * /games/{id}:
  *   get:
  *     summary: Get a game by ID

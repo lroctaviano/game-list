@@ -9,22 +9,16 @@ interface DatabaseConfig {
 
 const databaseConfig: DatabaseConfig = {
   development: {
-    username: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'gamedb_pass',
-    database: process.env.DB_NAME || 'gamedb',
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432'),
-    dialect: 'postgres',
+    dialect: 'sqlite',
+    storage: process.env.DB_STORAGE || './data/gameapi.sqlite',
     logging: false,
     dialectOptions: {
-      connectTimeout: 10000,
-      idle_in_transaction_session_timeout: 30000,
-      ssl: false
+      // Enable Write-Ahead Logging for better concurrency
+      mode: 3 // OPEN_READWRITE | OPEN_CREATE
     },
     pool: {
-      max: 5,
+      max: 1,
       min: 0,
-      acquire: 30000,
       idle: 10000
     },
     define: {
@@ -33,12 +27,8 @@ const databaseConfig: DatabaseConfig = {
     }
   },
   test: {
-    username: process.env.DB_USER || 'postgres',
-    password: process.env.DB_PASSWORD || 'gamedb_pass',
-    database: process.env.DB_NAME || 'gamedb_test',
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432'),
-    dialect: 'postgres',
+    dialect: 'sqlite',
+    storage: ':memory:',
     logging: false,
     define: {
       timestamps: true,
@@ -46,22 +36,12 @@ const databaseConfig: DatabaseConfig = {
     }
   },
   production: {
-    username: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    host: process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT || '5432'),
-    dialect: 'postgres',
+    dialect: 'sqlite',
+    storage: process.env.DB_STORAGE || './data/gameapi.sqlite',
     logging: false,
     define: {
       timestamps: true,
       underscored: true
-    },
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false
-      }
     }
   }
 };

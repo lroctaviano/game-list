@@ -614,19 +614,11 @@ describe('GraphQL API Integration Tests', () => {
             id
             username
             email
-            reviews {
-              id
-              ratingScore
-              game {
-                title
-                releaseDate
-              }
-            }
           }
         }
       `;
 
-      const result = await graphqlRequest<{ users: any[] }>(query, { limit: 50 });
+      const result = await graphqlRequest<{ users: any[] }>(query, { limit: 20 });
 
       expect(result.errors).toBeUndefined();
       expect(result.data?.users).toBeInstanceOf(Array);

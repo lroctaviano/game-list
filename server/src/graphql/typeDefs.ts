@@ -133,11 +133,11 @@ const typeDefs = gql`
     genre(id: ID!): Genre
 
     # Reviews
-    reviews(gameId: ID, userId: ID, minRating: Float, maxRating: Float): [Review]!
+    reviews(gameId: ID, userId: ID, minRating: Float, maxRating: Float, limit: Int): [Review]!
     review(id: ID!): Review
 
     # Users
-    users: [User]!
+    users(limit: Int): [User]!
     user(id: ID!): User
 
     # Images

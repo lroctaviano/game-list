@@ -4,7 +4,7 @@ import { GraphQLContext, ReviewQueryArgs } from '../../types';
 const reviewResolvers = {
   Query: {
     reviews: async (_: any, args: ReviewQueryArgs, { db }: GraphQLContext): Promise<any[]> => {
-      const { gameId, userId, minRating, maxRating } = args;
+      const { gameId, userId, minRating, maxRating, limit = 100 } = args;
       const where: any = {};
 
       if (gameId) where.game_id = gameId;
@@ -14,7 +14,8 @@ const reviewResolvers = {
 
       return await db.UserReview.findAll({
         where,
-        order: [['review_date', 'DESC']]
+        order: [['review_date', 'DESC']],
+        limit: Math.min(limit, 1000)
       });
     },
 

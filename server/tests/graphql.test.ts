@@ -523,8 +523,8 @@ describe('GraphQL API Integration Tests', () => {
   describe('Reviews Queries', () => {
     test('Should fetch all reviews', async () => {
       const query = `
-        query GetReviews {
-          reviews {
+        query GetReviews($limit: Int) {
+          reviews(limit: $limit) {
             id
             ratingScore
             reviewText
@@ -539,7 +539,7 @@ describe('GraphQL API Integration Tests', () => {
         }
       `;
 
-      const result = await graphqlRequest<{ reviews: any[] }>(query);
+      const result = await graphqlRequest<{ reviews: any[] }>(query, { limit: 50 });
 
       expect(result.errors).toBeUndefined();
       expect(result.data?.reviews).toBeInstanceOf(Array);
@@ -555,8 +555,8 @@ describe('GraphQL API Integration Tests', () => {
 
     test('Should filter reviews by game ID', async () => {
       const query = `
-        query GetGameReviews($gameId: ID!) {
-          reviews(gameId: $gameId) {
+        query GetGameReviews($gameId: ID!, $limit: Int) {
+          reviews(gameId: $gameId, limit: $limit) {
             id
             ratingScore
             game {
@@ -567,7 +567,7 @@ describe('GraphQL API Integration Tests', () => {
         }
       `;
 
-      const result = await graphqlRequest<{ reviews: any[] }>(query, { gameId: "1" });
+      const result = await graphqlRequest<{ reviews: any[] }>(query, { gameId: "1", limit: 50 });
 
       expect(result.errors).toBeUndefined();
       expect(result.data?.reviews).toBeInstanceOf(Array);
@@ -609,8 +609,8 @@ describe('GraphQL API Integration Tests', () => {
   describe('Users Queries', () => {
     test('Should fetch all users', async () => {
       const query = `
-        query GetUsers {
-          users {
+        query GetUsers($limit: Int) {
+          users(limit: $limit) {
             id
             username
             email
@@ -626,7 +626,7 @@ describe('GraphQL API Integration Tests', () => {
         }
       `;
 
-      const result = await graphqlRequest<{ users: any[] }>(query);
+      const result = await graphqlRequest<{ users: any[] }>(query, { limit: 50 });
 
       expect(result.errors).toBeUndefined();
       expect(result.data?.users).toBeInstanceOf(Array);

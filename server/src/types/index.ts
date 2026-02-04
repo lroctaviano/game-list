@@ -142,6 +142,7 @@ export interface ReviewQueryArgs {
   userId?: string;
   minRating?: number;
   maxRating?: number;
+  limit?: number;
 }
 
 export interface ImageQueryArgs {

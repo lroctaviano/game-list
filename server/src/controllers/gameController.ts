@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Op, where as seqWhere, fn, col } from 'sequelize';
+import { Op, where as seqWhere, fn, col, Sequelize } from 'sequelize';
 import { ParsedQs } from 'qs';
 import { Game, Genre, Company, UserReview, User, Image, ImageRelation } from '../models';
 import { GameAttributes, ApiResponse, SearchOptions } from '../types';
@@ -300,8 +300,8 @@ const gameController = {
         attributes: [
           'id',
           'title',
-          [(Game as any).sequelize.fn('AVG', (Game as any).sequelize.col('reviews.rating')), 'average_rating'],
-          [(Game as any).sequelize.fn('COUNT', (Game as any).sequelize.col('reviews.id')), 'total_reviews']
+          [fn('AVG', col('reviews.rating_score')), 'average_rating'],
+          [fn('COUNT', col('reviews.id')), 'total_reviews']
         ],
         group: ['Game.id']
       });

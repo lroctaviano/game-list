@@ -270,6 +270,37 @@ describe('REST API GET Endpoints', () => {
         expect(date1 <= date2).toBe(true);
       }
     });
+
+    test('GET /api/v1/games/:id/stats should return game statistics', async () => {
+      const response: Response = await request(baseURL)
+        .get('/api/v1/games/1/stats')
+        .expect(200);
+
+      expect(response.body).toHaveProperty('data');
+      expect(response.body.data).toHaveProperty('id', 1);
+      expect(response.body.data).toHaveProperty('title');
+      expect(response.body.data).toHaveProperty('average_rating');
+      expect(response.body.data).toHaveProperty('total_reviews');
+
+      // Verify the statistics are numbers
+      expect(typeof response.body.data.average_rating).toBe('number');
+      expect(typeof response.body.data.total_reviews).toBe('number');
+
+      // Verify average rating is within valid range (0-5)
+      expect(response.body.data.average_rating).toBeGreaterThanOrEqual(0);
+      expect(response.body.data.average_rating).toBeLessThanOrEqual(5);
+
+      // Verify total reviews is non-negative
+      expect(response.body.data.total_reviews).toBeGreaterThanOrEqual(0);
+    });
+
+    test('GET /api/v1/games/:id/stats for non-existent game should return 404', async () => {
+      const response: Response = await request(baseURL)
+        .get('/api/v1/games/999999/stats')
+        .expect(404);
+
+      expect(response.body).toHaveProperty('error');
+    });
   });
 
   describe('Genres Endpoints', () => {

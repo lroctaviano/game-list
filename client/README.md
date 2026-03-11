@@ -1,29 +1,75 @@
-# Client Application
+# Nuxt Minimal Starter
 
-This folder is reserved for your frontend application.
+Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
 
-## Getting Started
+## Setup
 
-Build your frontend application (Next.js, Nuxt, React, Vue, etc.) in this directory to connect to the Game API.
+Make sure to install dependencies:
 
-### Example Structure
+```bash
+# npm
+npm install
 
+# pnpm
+pnpm install
+
+# yarn
+yarn install
+
+# bun
+bun install
 ```
-client/
-├── package.json
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── ...
-└── ...
+
+## Development Server
+
+Start the development server on `http://localhost:3000`:
+
+```bash
+# npm
+npm run dev
+
+# pnpm
+pnpm dev
+
+# yarn
+yarn dev
+
+# bun
+bun run dev
 ```
 
-### Connecting to the API
+## Production
 
-The backend API runs on `http://localhost:8000` by default. Available endpoints:
+Build the application for production:
 
-- **REST API**: `http://localhost:8000/api/v1`
-- **GraphQL**: `http://localhost:8000/graphql`
-- **API Docs**: `http://localhost:8000/api-docs`
+```bash
+# npm
+npm run build
 
-See the main [README.md](../README.md) for full API documentation.
+# pnpm
+pnpm build
+
+# yarn
+yarn build
+
+# bun
+bun run build
+```
+
+Locally preview production build:
+
+```bash
+# npm
+npm run preview
+
+# pnpm
+pnpm preview
+
+# yarn
+yarn preview
+
+# bun
+bun run preview
+```
+
+Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
